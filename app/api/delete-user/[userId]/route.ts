@@ -7,11 +7,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!, // This needs to be set in your environment variables
 );
 
-export async function DELETE(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   let adminId: string | null = null;
 
   try {
-    const { userId: userIdFromParams } = params;
+    const { userId: userIdFromParams } = await params;
 
     // Check for userId in URL params first (for dynamic routes)
     let userId = userIdFromParams;
