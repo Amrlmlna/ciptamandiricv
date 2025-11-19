@@ -12,9 +12,9 @@ import { Settings } from "lucide-react"
 
 interface Profile {
   first_name: string
-  last_name: string
-  clinic_name: string
-  phone: string
+  last_name?: string
+  clinic_name?: string
+  phone?: string
 }
 
 export default function SettingsPage() {
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                 <Input
                   id="first_name"
                   value={profile?.first_name || ""}
-                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                  onChange={(e) => setProfile(prev => prev ? { ...prev, first_name: e.target.value } : null)}
                   className="border-border focus:border-primary"
                 />
               </div>
@@ -139,7 +139,7 @@ export default function SettingsPage() {
                 <Input
                   id="last_name"
                   value={profile?.last_name || ""}
-                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                  onChange={(e) => setProfile(prev => prev ? { ...prev, last_name: e.target.value } : null)}
                   className="border-border focus:border-primary"
                 />
               </div>
@@ -152,7 +152,7 @@ export default function SettingsPage() {
               <Input
                 id="clinic_name"
                 value={profile?.clinic_name || ""}
-                onChange={(e) => setProfile({ ...profile, clinic_name: e.target.value })}
+                onChange={(e) => setProfile(prev => prev ? { ...prev, clinic_name: e.target.value } : null)}
                 className="border-border focus:border-primary"
               />
             </div>
@@ -164,7 +164,7 @@ export default function SettingsPage() {
               <Input
                 id="phone"
                 value={profile?.phone || ""}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
                 className="border-border focus:border-primary"
               />
             </div>

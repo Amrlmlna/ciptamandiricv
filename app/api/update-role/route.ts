@@ -14,7 +14,10 @@ export async function PUT(request: NextRequest) {
     // Get the session from the request headers to verify the user is authenticated
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return Response.json({ success: false, message: "Missing authorization header" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Missing authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Get the user from the session
@@ -22,7 +25,10 @@ export async function PUT(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return Response.json({ success: false, message: "Authentication failed" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Authentication failed" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Verify the user is a superadmin
@@ -33,7 +39,10 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (profileError || !profile || profile.role !== "superadmin") {
-      return Response.json({ success: false, message: "Access denied. Only superadmins can update user roles." }, { status: 403 });
+      return new Response(JSON.stringify({ success: false, message: "Access denied. Only superadmins can update user roles." }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     adminId = user.id;
@@ -42,17 +51,26 @@ export async function PUT(request: NextRequest) {
 
     // Validate inputs
     if (!targetUserId || !newRole) {
-      return Response.json({ success: false, message: "Target user ID and new role are required" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Target user ID and new role are required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Don't allow users to change their own role
     if (user.id === targetUserId) {
-      return Response.json({ success: false, message: "Cannot change your own role" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Cannot change your own role" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Validate role value
     if (!['admin', 'superadmin'].includes(newRole)) {
-      return Response.json({ success: false, message: "Invalid role value" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Invalid role value" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Get current role for audit logging
@@ -63,7 +81,10 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (targetUserError) {
-      return Response.json({ success: false, message: "Error fetching target user for audit" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Error fetching target user for audit" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const previousRole = targetUser?.role || 'unknown';
@@ -77,7 +98,10 @@ export async function PUT(request: NextRequest) {
         .eq("role", "superadmin");
 
       if (countError) {
-        return Response.json({ success: false, message: "Failed to check superadmin limit" }, { status: 500 });
+        return new Response(JSON.stringify({ success: false, message: "Failed to check superadmin limit" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
 
       // If we're at the limit (2), and we're not doing a role transfer, automatically transfer roles
@@ -89,10 +113,13 @@ export async function PUT(request: NextRequest) {
           .eq("id", adminId); // adminId is the current user's ID (the superadmin)
 
         if (transferError) {
-          return Response.json({
+          return new Response(JSON.stringify({
             success: false,
             message: `Error transferring current superadmin role: ${transferError.message}`
-          }, { status: 400 });
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          });
         }
 
         // Update the target user to superadmin
@@ -112,10 +139,13 @@ export async function PUT(request: NextRequest) {
             console.error("Error reverting user role after failed target update:", revertError);
           }
 
-          return Response.json({
+          return new Response(JSON.stringify({
             success: false,
             message: `Error updating target user role: ${updateError.message}`
-          }, { status: 400 });
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          });
         }
 
         // Log the role transfer in the audit log
@@ -137,9 +167,12 @@ export async function PUT(request: NextRequest) {
           console.error("Error logging audit action:", auditError);
         }
 
-        return Response.json({
+        return new Response(JSON.stringify({
           success: true,
           message: `Role transfer completed: You are now an Admin and user ${targetUserId} is now a Superadmin`
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
         });
       }
     }
@@ -151,11 +184,17 @@ export async function PUT(request: NextRequest) {
       .eq("id", targetUserId);
 
     if (updateError) {
-      return Response.json({ success: false, message: `Error updating user role: ${updateError.message}` }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: `Error updating user role: ${updateError.message}` }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     if (count === 0) {
-      return Response.json({ success: false, message: "No user profile found to update with ID: " + targetUserId }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "No user profile found to update with ID: " + targetUserId }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Log the action in the audit log
@@ -176,13 +215,19 @@ export async function PUT(request: NextRequest) {
       // We don't fail the entire operation if we can't log the audit, but we log the error
     }
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
       message: `Role updated successfully from ${previousRole} to ${newRole}`
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error: any) {
     console.error("Error in update role API:", error);
-    return Response.json({ success: false, message: error.message || "Failed to update role" }, { status: 500 });
+    return new Response(JSON.stringify({ success: false, message: error.message || "Failed to update role" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

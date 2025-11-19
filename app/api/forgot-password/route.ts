@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-      return Response.json({ success: false, message: "Valid email is required" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Valid email is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Send password reset email using Supabase auth
@@ -25,19 +28,28 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Error sending password reset email:", error);
       // For security reasons, we don't reveal if the email exists or not
-      return Response.json({ 
-        success: true, 
-        message: "If an account with this email exists, a password reset link has been sent." 
+      return new Response(JSON.stringify({
+        success: true,
+        message: "If an account with this email exists, a password reset link has been sent."
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
       });
     }
 
-    return Response.json({ 
-      success: true, 
-      message: "If an account with this email exists, a password reset link has been sent." 
+    return new Response(JSON.stringify({
+      success: true,
+      message: "If an account with this email exists, a password reset link has been sent."
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error: any) {
     console.error("Error in forgot password API:", error);
-    return Response.json({ success: false, message: error.message || "Failed to send reset email" }, { status: 500 });
+    return new Response(JSON.stringify({ success: false, message: error.message || "Failed to send reset email" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

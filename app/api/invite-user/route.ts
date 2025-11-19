@@ -15,7 +15,10 @@ export async function POST(request: NextRequest) {
     // Get the session from the request headers to verify the user is authenticated
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return Response.json({ success: false, message: "Missing authorization header" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Missing authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Get the user from the session
@@ -23,7 +26,10 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return Response.json({ success: false, message: "Authentication failed" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Authentication failed" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Verify the user is a superadmin
@@ -34,7 +40,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (profileError || !profile || profile.role !== "superadmin") {
-      return Response.json({ success: false, message: "Access denied. Only superadmins can invite users." }, { status: 403 });
+      return new Response(JSON.stringify({ success: false, message: "Access denied. Only superadmins can invite users." }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     adminId = user.id;
@@ -42,13 +51,19 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json();
 
     if (!email) {
-      return Response.json({ success: false, message: "Email is required" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Email is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Add email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return Response.json({ success: false, message: "Invalid email format" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Invalid email format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Check if user already exists
@@ -59,7 +74,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingUser) {
-      return Response.json({ success: false, message: "User with this email already exists." }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "User with this email already exists." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Generate a temporary password
@@ -73,7 +91,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (createUserError) {
-      return Response.json({ success: false, message: createUserError.message }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: createUserError.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     invitedUserId = newUser.user.id;
@@ -90,7 +111,10 @@ export async function POST(request: NextRequest) {
       });
 
     if (profileUpdateError) {
-      return Response.json({ success: false, message: profileUpdateError.message }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: profileUpdateError.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Log the action in the audit log
@@ -112,9 +136,12 @@ export async function POST(request: NextRequest) {
       // We don't fail the entire operation if we can't log the audit, but we log the error
     }
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
-      message: `Admin invited successfully. Send the following login information to ${email}: Email: ${email}, Password: ${tempPassword} (user should change after first login). Note: New users start as admin and can be promoted to superadmin later if needed.`
+      message: `Admin invited successfully. Send the following login information to ${email}: Email: ${email}, Password: ${tempPassword} (user should change after first login). Note: New users start as admin and can be promoted to superadmin later if needed.)`
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error: any) {
@@ -130,7 +157,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return Response.json({ success: false, message: error.message || "Failed to invite user" }, { status: 500 });
+    return new Response(JSON.stringify({ success: false, message: error.message || "Failed to invite user" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
 

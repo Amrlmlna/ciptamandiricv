@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
     // Get the session from the request headers to verify the user is authenticated
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return Response.json({ success: false, message: "Missing authorization header" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Missing authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Get the user from the session
@@ -20,7 +23,10 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return Response.json({ success: false, message: "Authentication failed" }, { status: 401 });
+      return new Response(JSON.stringify({ success: false, message: "Authentication failed" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Verify the user is an admin or superadmin
@@ -31,13 +37,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (profileError || !profile || (profile.role !== "admin" && profile.role !== "superadmin")) {
-      return Response.json({ success: false, message: "Access denied. Only admins can log audit actions." }, { status: 403 });
+      return new Response(JSON.stringify({ success: false, message: "Access denied. Only admins can log audit actions." }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const { action, target_user_id, previous_role, new_role } = await request.json();
 
     if (!action || !target_user_id) {
-      return Response.json({ success: false, message: "Action and target_user_id are required" }, { status: 400 });
+      return new Response(JSON.stringify({ success: false, message: "Action and target_user_id are required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Log the action in the audit log
@@ -56,16 +68,25 @@ export async function POST(request: NextRequest) {
 
     if (auditError) {
       console.error("Error logging audit action:", auditError);
-      return Response.json({ success: false, message: "Failed to log audit action" }, { status: 500 });
+      return new Response(JSON.stringify({ success: false, message: "Failed to log audit action" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
       message: "Audit log entry created successfully"
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error: any) {
     console.error("Error in log audit API:", error);
-    return Response.json({ success: false, message: error.message || "Failed to log audit action" }, { status: 500 });
+    return new Response(JSON.stringify({ success: false, message: error.message || "Failed to log audit action" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
