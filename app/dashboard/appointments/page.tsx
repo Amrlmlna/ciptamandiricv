@@ -137,11 +137,46 @@ export default function AppointmentsPage() {
     if (!confirm("Apakah Anda yakin ingin menghapus janji temu ini?")) return
 
     try {
-      const { error } = await supabase.from("appointments").delete().eq("id", id)
-      if (error) throw error
+      // First, update any related revenue records to remove the appointment reference
+      const { error: revenueError } = await supabase
+        .from('revenue')
+        .update({ appointment_id: null })
+        .eq('appointment_id', id)
+
+      if (revenueError) {
+        console.error("Kesalahan saat menghapus referensi pendapatan:", {
+          message: revenueError?.message,
+          code: revenueError?.code,
+          details: revenueError?.details,
+          hint: revenueError?.hint
+        })
+        // Don't throw here - continue with appointment deletion even if revenue update fails
+      }
+
+      // Then delete the appointment
+      const { error: appointmentError, status, statusText } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id)
+
+      if (appointmentError) {
+        console.error("Kesalahan menghapus janji temu - Detail:", {
+          message: appointmentError?.message,
+          code: appointmentError?.code,
+          details: appointmentError?.details,
+          hint: appointmentError?.hint,
+          status,
+          statusText
+        })
+        throw appointmentError
+      }
+
       await fetchData()
-    } catch (error) {
-      console.error("Kesalahan menghapus janji temu:", error)
+    } catch (error: any) {
+      console.error("Kesalahan menghapus janji temu - Error object:", error)
+      console.error("Kesalahan menghapus janji temu - Error message:", error?.message || "No message")
+      console.error("Kesalahan menghapus janji temu - Error code:", error?.code || "No code")
+      console.error("Kesalahan menghapus janji temu - Error details:", error?.details || "No details")
     }
   }
 
