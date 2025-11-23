@@ -36,7 +36,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen bg-background">
       <DashboardNav user={compatibleUser} profile={profile} />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pt-16 md:pt-0">
         <div className="h-full">{children}</div>
       </div>
     </div>
