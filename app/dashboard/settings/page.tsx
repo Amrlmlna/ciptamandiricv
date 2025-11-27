@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
 
   const supabase = createClient()
 
@@ -82,6 +84,72 @@ export default function SettingsPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     window.location.href = "/"
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage(null)
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setMessage({ type: "error", text: "Isi semua kolom kata sandi" })
+      return
+    }
+
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      setMessage({ type: "error", text: "Kata sandi baru tidak boleh sama dengan kata sandi saat ini" })
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setMessage({ type: "error", text: "Konfirmasi kata sandi baru tidak cocok" })
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setMessage({ type: "error", text: "Kata sandi baru minimal 8 karakter" })
+      return
+    }
+
+    setIsUpdatingPassword(true)
+
+    try {
+      const currentUser = (await supabase.auth.getUser()).data.user
+
+      if (!currentUser?.email) {
+        throw new Error("Tidak dapat memverifikasi pengguna saat ini")
+      }
+
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: passwordForm.currentPassword
+      })
+
+      if (signInError || !signInData.user) {
+        setMessage({ type: "error", text: "Kata sandi saat ini salah" })
+        return
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      })
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+
+      setMessage({ type: "success", text: "Kata sandi berhasil diperbarui. Mengalihkan ke halaman login..." })
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+
+      await supabase.auth.signOut()
+      setTimeout(() => {
+        window.location.href = "/auth/login"
+      }, 1000)
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Gagal memperbarui kata sandi"
+      setMessage({ type: "error", text })
+    } finally {
+      setIsUpdatingPassword(false)
+    }
   }
 
   if (loading) {
@@ -186,14 +254,64 @@ export default function SettingsPage() {
           <CardTitle>Keamanan</CardTitle>
           <CardDescription>Kelola keamanan akun Anda</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            className="border-destructive text-destructive hover:bg-destructive/10 bg-transparent"
-          >
-            Keluar
-          </Button>
+        <CardContent className="space-y-6">
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="current-password" className="text-foreground">
+                Kata Sandi Saat Ini
+              </Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                className="border-border focus:border-primary"
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="new-password" className="text-foreground">
+                Kata Sandi Baru
+              </Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                className="border-border focus:border-primary"
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password" className="text-foreground">
+                Konfirmasi Kata Sandi Baru
+              </Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                className="border-border focus:border-primary"
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full md:w-auto" disabled={isUpdatingPassword}>
+              {isUpdatingPassword ? "Memperbarui..." : "Ganti Kata Sandi"}
+            </Button>
+          </form>
+
+          <div className="border-t border-border pt-4">
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10 bg-transparent"
+            >
+              Keluar
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
