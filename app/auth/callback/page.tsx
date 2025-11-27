@@ -14,41 +14,62 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Check if there are error parameters in the URL (like otp_expired)
-      const urlParams = new URLSearchParams(window.location.search)
-      const urlError = urlParams.get('error')
-      const errorDescription = urlParams.get('error_description')
+      const url = new URL(window.location.href)
+      const queryParams = url.searchParams
+      const hashParams = new URLSearchParams(url.hash.slice(1))
+      const urlError = queryParams.get("error") ?? hashParams.get("error")
+      const errorDescription = queryParams.get("error_description") ?? hashParams.get("error_description")
 
       if (urlError) {
-        setError(errorDescription || 'Authentication failed')
+        setError(errorDescription || "Authentication failed")
         return
       }
 
-      // Check session after redirect
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      let session = null
+      let sessionError: Error | null = null
+
+      const authorizationCode = queryParams.get("code")
+
+      if (authorizationCode) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(authorizationCode)
+        session = data.session
+        sessionError = error
+      } else {
+
+        const accessToken = hashParams.get("access_token")
+        const refreshToken = hashParams.get("refresh_token")
+
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+          session = data.session
+          sessionError = error
+        } else {
+          const { data, error } = await supabase.auth.getSession()
+          session = data.session
+          sessionError = error
+        }
+      }
 
       if (sessionError || !session) {
-        // If there's no valid session, redirect to login
-        router.push('/auth/login')
+        console.error("Auth callback session error", sessionError)
+        setError(sessionError?.message || "Link authentication failed")
         return
       }
 
-      // Check if this is a password recovery session by trying to access session data
-      // If we have a session after a password reset link click, redirect to reset password page
-      if (session) {
-        // For password reset flow, redirect to the reset password page
-        router.push('/auth/reset-password')
-      } else {
-        // If no session, redirect to login
-        router.push('/auth/login')
+      const linkType = hashParams.get("type") ?? queryParams.get("type")
+
+      if (linkType === "recovery") {
+        router.replace('/auth/reset-password')
+        return
       }
+
+      router.replace('/auth/login')
     }
 
-    // Wait a bit for the page to initialize before checking session
-    // This ensures that all Supabase client setup has completed
-    const timer = setTimeout(handleCallback, 500)
-
-    return () => clearTimeout(timer)
+    void handleCallback()
   }, [router, supabase])
 
   if (error) {
