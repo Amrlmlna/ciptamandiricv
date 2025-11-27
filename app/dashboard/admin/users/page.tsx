@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, User, Check, X } from "lucide-react"
+import { exportDataToExcel } from "@/lib/export/exportData"
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export default function UserManagementPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<{id: string, role: string} | null>(null)
   const [temporaryCredentials, setTemporaryCredentials] = useState<{email: string, password: string} | null>(null)
   const [superadminCount, setSuperadminCount] = useState<number>(0);
+  const [isExporting, setIsExporting] = useState(false)
 
   const supabase = createClient()
 
@@ -52,6 +54,21 @@ export default function UserManagementPage() {
       if (authError || !currentUser) {
         throw new Error("Authentication failed");
       }
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      await exportDataToExcel({
+        entity: "users",
+        filters: { role: userRoleFilter },
+      })
+    } catch (error) {
+      console.error("Error exporting users:", error)
+      alert(error instanceof Error ? error.message : "Gagal mengekspor pengguna")
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -380,6 +397,15 @@ export default function UserManagementPage() {
           >
             <Shield className="mr-2 h-4 w-4" />
             Undang Pengguna Baru
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export Excel"}
           </Button>
         </div>
 

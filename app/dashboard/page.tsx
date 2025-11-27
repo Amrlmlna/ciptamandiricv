@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Calendar, TrendingUp } from "lucide-react"
 import { CalendarView } from "@/components/dashboard/calendar-view"
+import { ExportDataCard } from "@/components/dashboard/export-data-card"
 import { Suspense } from 'react'
 
 export default async function DashboardPage() {
@@ -116,8 +117,9 @@ export default async function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <CalendarView />
+              <ExportDataCard />
             </div>
 
             <Card className="border border-border">

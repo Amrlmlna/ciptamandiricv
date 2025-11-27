@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, Trash2, Edit2, Clock, Search } from "lucide-react"
 import { CombinedAppointmentForm } from "@/components/dashboard/combined-appointment-form"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { exportDataToExcel } from "@/lib/export/exportData"
 
 interface Patient {
   id: string
@@ -35,6 +37,7 @@ export default function AppointmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
+  const [isExporting, setIsExporting] = useState(false)
 
   const supabase = createClient()
 
@@ -70,6 +73,24 @@ export default function AppointmentsPage() {
       console.error("Kesalahan mengambil data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      await exportDataToExcel({
+        entity: "appointments",
+        filters: {
+          search: searchTerm,
+          status: statusFilter,
+        },
+      })
+    } catch (error) {
+      console.error("Kesalahan mengekspor janji temu:", error)
+      alert(error instanceof Error ? error.message : "Gagal mengekspor janji temu")
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -308,6 +329,16 @@ export default function AppointmentsPage() {
             <option value="nearest">Terdekat</option>
             <option value="oldest">Terlama</option>
           </select>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export Excel"}
+          </Button>
         </div>
       </div>
 

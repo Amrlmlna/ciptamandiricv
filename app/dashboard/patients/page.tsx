@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { exportDataToExcel } from "@/lib/export/exportData";
 
 interface Patient {
   id: string;
@@ -52,6 +53,7 @@ export default function PatientsPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all"); // all, oldest, newest
+  const [isExporting, setIsExporting] = useState(false);
 
   const supabase = createClient();
 
@@ -72,6 +74,24 @@ export default function PatientsPage() {
       console.error("Error fetching patients:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      await exportDataToExcel({
+        entity: "patients",
+        filters: {
+          search: searchTerm,
+          dateOrder: dateFilter === "oldest" ? "oldest" : "newest",
+        },
+      });
+    } catch (error) {
+      console.error("Error exporting patients:", error);
+      alert(error instanceof Error ? error.message : "Gagal mengekspor pasien");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -361,6 +381,16 @@ export default function PatientsPage() {
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
           </select>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export Excel"}
+          </Button>
         </div>
       </div>
 
